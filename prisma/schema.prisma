@@ -1,0 +1,170 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  role_name   String   @unique
+  description String?
+  users       User[]
+
+  @@map("roles")
+}
+
+model User {
+  id              Int             @id @default(autoincrement())
+  name            String
+  email           String          @unique
+  password_hash   String
+  role_id         Int
+  is_active       Boolean         @default(true)
+  created_at      DateTime        @default(now())
+  updated_at      DateTime        @updatedAt
+  role            Role            @relation(fields: [role_id], references: [id])
+  bookmarks       Bookmark[]
+  feedbacks       Feedback[]
+  recently_viewed RecentlyViewed[]
+
+  @@map("users")
+}
+
+model ServiceCategory {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  description String?
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+  services    Service[]
+
+  @@map("service_categories")
+}
+
+model Service {
+  id                  Int                @id @default(autoincrement())
+  category_id         Int
+  title               String
+  description         String?
+  application_process String?
+  fees                String?
+  processing_time     String?
+  view_count          Int                @default(0)
+  created_at          DateTime           @default(now())
+  updated_at          DateTime           @updatedAt
+  category            ServiceCategory    @relation(fields: [category_id], references: [id])
+  steps               ServiceStep[]
+  required_documents  RequiredDocument[]
+  service_offices     ServiceOffice[]
+  bookmarks           Bookmark[]
+  feedbacks           Feedback[]
+  recently_viewed     RecentlyViewed[]
+  eligibility_rules   EligibilityRule[]
+
+  @@map("services")
+}
+
+model ServiceStep {
+  id               Int     @id @default(autoincrement())
+  service_id       Int
+  step_number      Int
+  step_title       String
+  step_description String?
+  service          Service @relation(fields: [service_id], references: [id], onDelete: Cascade)
+
+  @@map("service_steps")
+}
+
+model RequiredDocument {
+  id            Int     @id @default(autoincrement())
+  service_id    Int
+  document_name String
+  description   String?
+  service       Service @relation(fields: [service_id], references: [id], onDelete: Cascade)
+
+  @@map("required_documents")
+}
+
+model GovernmentOffice {
+  id              Int             @id @default(autoincrement())
+  name            String
+  office_type     String?
+  address         String?
+  district        String?
+  upazila         String?
+  phone           String?
+  email           String?
+  office_hours    String?
+  service_offices ServiceOffice[]
+
+  @@map("government_offices")
+}
+
+model ServiceOffice {
+  id         Int              @id @default(autoincrement())
+  service_id Int
+  office_id  Int
+  service    Service          @relation(fields: [service_id], references: [id], onDelete: Cascade)
+  office     GovernmentOffice @relation(fields: [office_id], references: [id], onDelete: Cascade)
+
+  @@unique([service_id, office_id])
+  @@map("service_offices")
+}
+
+model Bookmark {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  service_id Int
+  created_at DateTime @default(now())
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  service    Service  @relation(fields: [service_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, service_id])
+  @@map("bookmarks")
+}
+
+model Feedback {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  service_id Int
+  rating     Int
+  comment    String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  service    Service  @relation(fields: [service_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, service_id])
+  @@map("feedbacks")
+}
+
+// ── Segment 6: New Entities ───────────────────────────────
+
+// Feature 1: Recently Viewed Services
+model RecentlyViewed {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  service_id Int
+  viewed_at  DateTime @default(now())
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  service    Service  @relation(fields: [service_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, service_id])
+  @@map("recently_viewed")
+}
+
+// Feature 4: Service Eligibility Checker
+model EligibilityRule {
+  id           Int     @id @default(autoincrement())
+  service_id   Int
+  question     String
+  answer_type  String  // "yes_no" | "age" | "text"
+  expected     String  // e.g. "yes", ">=18", "bangladeshi"
+  description  String?
+  service      Service @relation(fields: [service_id], references: [id], onDelete: Cascade)
+
+  @@map("eligibility_rules")
+}
