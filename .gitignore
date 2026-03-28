@@ -26,3 +26,5 @@ coverage
 /src/generated/prisma
 .vercel
 .env*.local
+data.json
+index.js
